@@ -1,21 +1,23 @@
 import streamlit as st
 import pandas as pd
-import json
 import vertexai
+from google.oauth2 import service_account
 from vertexai.preview.generative_models import GenerativeModel
 
-# -------- AUTH SETUP --------
-creds = json.loads(st.secrets["GOOGLE_APPLICATION_CREDENTIALS"])
+# ---------- AUTH ----------
+credentials = service_account.Credentials.from_service_account_info(
+    st.secrets["gcp"]
+)
 
 vertexai.init(
-    project=creds["project_id"],
+    project=st.secrets["gcp"]["project_id"],
     location="us-central1",
-    credentials=creds
+    credentials=credentials
 )
 
 model = GenerativeModel("gemini-1.0-pro")
 
-# -------- UI --------
+# ---------- UI ----------
 st.title("SustainOS – AI-Driven Adaptive Sustainability System")
 st.write(
     "Predicts future energy demand, explains risks, "
@@ -27,35 +29,29 @@ uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
 
 if uploaded_file:
     data = pd.read_csv(uploaded_file)
+    st.subheader("Historical Energy Usage")
     st.line_chart(data["Energy_Usage_kWh"])
     st.success("Data loaded")
 
     if st.button("Run AI Prediction"):
         with st.spinner("AI reasoning in progress..."):
-
-            prediction_prompt = f"""
-            You are an energy forecasting AI for a university campus.
-
-            Based on recent patterns, predict electricity demand
-            for the next 24 hours and identify peak risk periods.
-            """
-
+            prediction_prompt = (
+                "You are an energy forecasting AI for a university campus. "
+                "Predict electricity demand for the next 24 hours and identify peak risk periods."
+            )
             prediction = model.generate_content(prediction_prompt)
-
             st.header("2️⃣ AI Prediction")
             st.write(prediction.text)
 
             explanation = model.generate_content(
                 "Explain in simple terms why these energy peaks occur."
             )
-
             st.header("3️⃣ Explainable AI")
             st.write(explanation.text)
 
             policy = model.generate_content(
                 "Suggest 3 adaptive sustainability actions to reduce peak demand."
             )
-
             st.header("4️⃣ Adaptive Policy Recommendations")
             st.write(policy.text)
 else:
