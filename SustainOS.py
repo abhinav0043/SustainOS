@@ -1,61 +1,45 @@
 import streamlit as st
 import pandas as pd
-import vertexai
-from google.oauth2 import service_account
-from vertexai.generative_models import GenerativeModel
+import requests
+import json
 
-# ---------- AUTH ----------
-credentials = service_account.Credentials.from_service_account_info(
-    st.secrets["gcp"]
-)
+API_KEY = st.secrets["GEMINI_API_KEY"]
+URL = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={API_KEY}"
 
-vertexai.init(
-    project=st.secrets["gcp"]["project_id"],
-    location="us-central1",
-    credentials=credentials
-)
+def gemini(prompt):
+    payload = {
+        "contents": [
+            {"parts": [{"text": prompt}]}
+        ]
+    }
+    r = requests.post(URL, json=payload, timeout=30)
+    r.raise_for_status()
+    data = r.json()
+    return data["candidates"][0]["content"]["parts"][0]["text"]
 
-model = GenerativeModel(
-    f"projects/{st.secrets['gcp']['project_id']}/locations/us-central1/"
-    "publishers/google/models/gemini-1.5-flash-001"
-)
-
-# ---------- UI ----------
 st.title("SustainOS – AI-Driven Adaptive Sustainability System")
-st.write(
-    "Predicts future energy demand, explains risks, "
-    "and recommends adaptive sustainability actions."
-)
 
-st.header("1️⃣ Upload Campus Energy Data")
 uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
 
 if uploaded_file:
-    data = pd.read_csv(uploaded_file)
-    st.subheader("Historical Energy Usage")
-    st.line_chart(data["Energy_Usage_kWh"])
-    st.success("Data loaded")
+    df = pd.read_csv(uploaded_file)
+    st.line_chart(df["Energy_Usage_kWh"])
 
     if st.button("Run AI Prediction"):
-        with st.spinner("AI reasoning in progress..."):
-            prediction_prompt = (
-                "You are an energy forecasting AI for a university campus. "
-                "Predict electricity demand for the next 24 hours and identify peak risk periods."
-            )
-            prediction = model.generate_content(prediction_prompt)
-            st.header("2️⃣ AI Prediction")
-            st.write(prediction.text)
+        pred = gemini(
+            "Predict electricity demand for the next 24 hours and identify peak hours."
+        )
+        st.header("AI Prediction")
+        st.write(pred)
 
-            explanation = model.generate_content(
-                "Explain in simple terms why these energy peaks occur."
-            )
-            st.header("3️⃣ Explainable AI")
-            st.write(explanation.text)
+        exp = gemini(
+            "Explain in simple terms why these energy peaks occur."
+        )
+        st.header("Explainable AI")
+        st.write(exp)
 
-            policy = model.generate_content(
-                "Suggest 3 adaptive sustainability actions to reduce peak demand."
-            )
-            st.header("4️⃣ Adaptive Policy Recommendations")
-            st.write(policy.text)
-else:
-    st.info("Upload CSV to begin.")
+        pol = gemini(
+            "Suggest 3 adaptive sustainability actions to reduce peak demand."
+        )
+        st.header("Policy Recommendations")
+        st.write(pol)
