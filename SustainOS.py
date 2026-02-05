@@ -15,7 +15,10 @@ vertexai.init(
     credentials=credentials
 )
 
-model = GenerativeModel("gemini-1.5-flash-001")
+model = GenerativeModel(
+    f"projects/{st.secrets['gcp']['project_id']}/locations/us-central1/"
+    "publishers/google/models/gemini-1.5-flash-001"
+)
 
 # ---------- UI ----------
 st.title("SustainOS – AI-Driven Adaptive Sustainability System")
