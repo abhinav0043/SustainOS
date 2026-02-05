@@ -5,7 +5,8 @@ import requests
 # ---------- CONFIG ----------
 API_KEY = st.secrets["GEMINI_API_KEY"]
 GEMINI_URL = (
-    "https://generativelanguage.googleapis.com/v1/models/"
+    GEMINI_URL = (
+    "https://generativelanguage.googleapis.com/v1beta/models/"
     "gemini-1.5-flash:generateContent?key=" + API_KEY
 )
 
