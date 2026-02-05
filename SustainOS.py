@@ -1,10 +1,14 @@
 import streamlit as st
 import pandas as pd
-import google.generativeai as genai
+import requests
+import json
 
 # ---------------- CONFIG ----------------
-genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-model = genai.GenerativeModel("models/gemini-1.0-pro")
+GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
+GEMINI_URL = (
+    "https://generativelanguage.googleapis.com/v1/models/"
+    "gemini-1.5-flash:generateContent?key=" + GEMINI_API_KEY
+)
 
 st.title("SustainOS – AI-Driven Adaptive Sustainability System")
 st.write(
@@ -16,6 +20,18 @@ st.write(
 st.header("1️⃣ Upload Campus Energy Data")
 uploaded_file = st.file_uploader("Upload CSV file", type=["csv"])
 
+def call_gemini(prompt):
+    payload = {
+        "contents": [
+            {
+                "parts": [{"text": prompt}]
+            }
+        ]
+    }
+    headers = {"Content-Type": "application/json"}
+    response = requests.post(GEMINI_URL, headers=headers, data=json.dumps(payload))
+    return response.json()["candidates"][0]["content"]["parts"][0]["text"]
+
 if uploaded_file is not None:
     data = pd.read_csv(uploaded_file)
 
@@ -23,50 +39,42 @@ if uploaded_file is not None:
     st.line_chart(data["Energy_Usage_kWh"])
     st.success("Data loaded successfully!")
 
-    # ---------------- BUTTON ----------------
     if st.button("Run AI Prediction"):
         with st.spinner("AI is analyzing future demand..."):
 
-            # --------- PREDICTION PROMPT ---------
+            # -------- PREDICTION --------
             prediction_prompt = f"""
             You are an energy forecasting AI for a university campus.
 
             Historical hourly electricity usage data:
             {data.tail(48).to_string()}
 
-            Tasks:
-            1. Predict electricity usage for the next 24 hours.
-            2. Identify peak risk hours.
+            Predict electricity usage for the next 24 hours
+            and identify peak risk hours.
             """
 
-            prediction = model.generate_content(prediction_prompt)
-
+            prediction_text = call_gemini(prediction_prompt)
             st.header("2️⃣ AI Prediction")
-            st.write(prediction.text)
+            st.write(prediction_text)
 
-            # --------- EXPLANATION PROMPT ---------
+            # -------- EXPLANATION --------
             explanation_prompt = """
-            Explain in simple, non-technical language
-            why the predicted energy spikes may occur.
+            Explain in simple language why the predicted energy spike occurs.
             """
 
-            explanation = model.generate_content(explanation_prompt)
-
+            explanation_text = call_gemini(explanation_prompt)
             st.header("3️⃣ Explainable AI")
-            st.write(explanation.text)
+            st.write(explanation_text)
 
-            # --------- POLICY PROMPT ---------
+            # -------- POLICY --------
             policy_prompt = """
-            Based on the predicted energy demand,
-            suggest 3 adaptive sustainability actions
-            a campus administrator can take today
-            to reduce peak load tomorrow.
+            Suggest 3 adaptive sustainability actions
+            to reduce peak electricity demand.
             """
 
-            policies = model.generate_content(policy_prompt)
-
+            policy_text = call_gemini(policy_prompt)
             st.header("4️⃣ Adaptive Policy Recommendations")
-            st.write(policies.text)
+            st.write(policy_text)
 
 else:
     st.info("Please upload a CSV file to begin.")
