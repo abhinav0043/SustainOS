@@ -9,7 +9,7 @@ GEMINI_URL = (
     "https://generativelanguage.googleapis.com/v1beta/models/"
     "gemini-1.5-flash:generateContent?key=" + API_KEY
 )
-
+)
 # ---------- GEMINI CALL ----------
 def call_gemini(prompt: str) -> str:
     payload = {
