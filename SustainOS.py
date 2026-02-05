@@ -29,8 +29,26 @@ def call_gemini(prompt):
         ]
     }
     headers = {"Content-Type": "application/json"}
-    response = requests.post(GEMINI_URL, headers=headers, data=json.dumps(payload))
-    return response.json()["candidates"][0]["content"]["parts"][0]["text"]
+
+    response = requests.post(
+        GEMINI_URL,
+        headers=headers,
+        data=json.dumps(payload),
+        timeout=30
+    )
+
+    data = response.json()
+
+    # ---- SAFE PARSING ----
+    try:
+        return data["candidates"][0]["content"]["parts"][0]["text"]
+    except Exception:
+        return (
+            "⚠️ AI response unavailable at the moment.\n\n"
+            "Demo output:\n"
+            "Predicted peak electricity demand tomorrow between 7–9 PM, "
+            "driven by historical usage patterns and evening activity."
+        )
 
 if uploaded_file is not None:
     data = pd.read_csv(uploaded_file)
