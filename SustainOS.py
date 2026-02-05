@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import vertexai
 from google.oauth2 import service_account
-from vertexai.preview.generative_models import GenerativeModel
+from vertexai.generative_models import GenerativeModel
 
 # ---------- AUTH ----------
 credentials = service_account.Credentials.from_service_account_info(
@@ -15,7 +15,7 @@ vertexai.init(
     credentials=credentials
 )
 
-model = GenerativeModel("gemini-1.0-pro")
+model = GenerativeModel("gemini-1.5-flash-001")
 
 # ---------- UI ----------
 st.title("SustainOS – AI-Driven Adaptive Sustainability System")
