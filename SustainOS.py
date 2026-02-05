@@ -1,98 +1,62 @@
 import streamlit as st
 import pandas as pd
-import requests
 import json
+import vertexai
+from vertexai.preview.generative_models import GenerativeModel
 
-# ---------------- CONFIG ----------------
-GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
-GEMINI_URL = (
-    "https://generativelanguage.googleapis.com/v1/models/"
-    "gemini-1.5-flash:generateContent?key=" + GEMINI_API_KEY
+# -------- AUTH SETUP --------
+creds = json.loads(st.secrets["GOOGLE_APPLICATION_CREDENTIALS"])
+
+vertexai.init(
+    project=creds["project_id"],
+    location="us-central1",
+    credentials=creds
 )
 
+model = GenerativeModel("gemini-1.0-pro")
+
+# -------- UI --------
 st.title("SustainOS – AI-Driven Adaptive Sustainability System")
 st.write(
-    "SustainOS predicts future energy demand, explains risks, "
+    "Predicts future energy demand, explains risks, "
     "and recommends adaptive sustainability actions."
 )
 
-# ---------------- DATA UPLOAD ----------------
 st.header("1️⃣ Upload Campus Energy Data")
-uploaded_file = st.file_uploader("Upload CSV file", type=["csv"])
+uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
 
-def call_gemini(prompt):
-    payload = {
-        "contents": [
-            {
-                "parts": [{"text": prompt}]
-            }
-        ]
-    }
-    headers = {"Content-Type": "application/json"}
-
-    response = requests.post(
-        GEMINI_URL,
-        headers=headers,
-        data=json.dumps(payload),
-        timeout=30
-    )
-
-    data = response.json()
-
-    # ---- SAFE PARSING ----
-    try:
-        return data["candidates"][0]["content"]["parts"][0]["text"]
-    except Exception:
-        return (
-            "⚠️ AI response unavailable at the moment.\n\n"
-            "Demo output:\n"
-            "Predicted peak electricity demand tomorrow between 7–9 PM, "
-            "driven by historical usage patterns and evening activity."
-        )
-
-if uploaded_file is not None:
+if uploaded_file:
     data = pd.read_csv(uploaded_file)
-
-    st.subheader("Historical Energy Usage")
     st.line_chart(data["Energy_Usage_kWh"])
-    st.success("Data loaded successfully!")
+    st.success("Data loaded")
 
     if st.button("Run AI Prediction"):
-        with st.spinner("AI is analyzing future demand..."):
+        with st.spinner("AI reasoning in progress..."):
 
-            # -------- PREDICTION --------
             prediction_prompt = f"""
             You are an energy forecasting AI for a university campus.
 
-            Historical hourly electricity usage data:
-            {data.tail(48).to_string()}
-
-            Predict electricity usage for the next 24 hours
-            and identify peak risk hours.
+            Based on recent patterns, predict electricity demand
+            for the next 24 hours and identify peak risk periods.
             """
 
-            prediction_text = call_gemini(prediction_prompt)
+            prediction = model.generate_content(prediction_prompt)
+
             st.header("2️⃣ AI Prediction")
-            st.write(prediction_text)
+            st.write(prediction.text)
 
-            # -------- EXPLANATION --------
-            explanation_prompt = """
-            Explain in simple language why the predicted energy spike occurs.
-            """
+            explanation = model.generate_content(
+                "Explain in simple terms why these energy peaks occur."
+            )
 
-            explanation_text = call_gemini(explanation_prompt)
             st.header("3️⃣ Explainable AI")
-            st.write(explanation_text)
+            st.write(explanation.text)
 
-            # -------- POLICY --------
-            policy_prompt = """
-            Suggest 3 adaptive sustainability actions
-            to reduce peak electricity demand.
-            """
+            policy = model.generate_content(
+                "Suggest 3 adaptive sustainability actions to reduce peak demand."
+            )
 
-            policy_text = call_gemini(policy_prompt)
             st.header("4️⃣ Adaptive Policy Recommendations")
-            st.write(policy_text)
-
+            st.write(policy.text)
 else:
-    st.info("Please upload a CSV file to begin.")
+    st.info("Upload CSV to begin.")
