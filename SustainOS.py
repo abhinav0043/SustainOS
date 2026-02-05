@@ -4,12 +4,7 @@ import requests
 
 # ---------- CONFIG ----------
 API_KEY = st.secrets["GEMINI_API_KEY"]
-GEMINI_URL = (
-    GEMINI_URL = (
-    "https://generativelanguage.googleapis.com/v1beta/models/"
-    "gemini-1.5-flash:generateContent?key=" + API_KEY
-)
-)
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + API_KEY
 # ---------- GEMINI CALL ----------
 def call_gemini(prompt: str) -> str:
     payload = {
